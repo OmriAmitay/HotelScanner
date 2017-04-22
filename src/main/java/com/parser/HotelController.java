@@ -1,0 +1,17 @@
+package com.parser;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+
+@Controller
+@RequestMapping("/hotel/analyzer")
+public class HotelController {
+
+	@RequestMapping(value="{name}", method = RequestMethod.POST)
+	public void getShopInJSON(@RequestBody HotelEntitiy hotelEntity) {
+
+	}
+
+}
