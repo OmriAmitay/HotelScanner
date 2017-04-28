@@ -183,7 +183,7 @@ public class ExcelWritter {
 	    cellFont.setColour(Colour.BLUE);
 	    
 	    WritableCellFormat cellFormat = new WritableCellFormat(cellFont);
-	    cellFormat.setBackground(Colour.GRAY_50);
+	    cellFormat.setBackground(Colour.GRAY_25);
 	    cellFormat.setAlignment(Alignment.CENTRE);
 	    cellFormat.setVerticalAlignment(VerticalAlignment.CENTRE);
 	    cellFormat.setBorder(Border.ALL, BorderLineStyle.THIN);
