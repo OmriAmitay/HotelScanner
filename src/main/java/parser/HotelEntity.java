@@ -1,6 +1,5 @@
-package com.parser;
+package parser;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.springframework.stereotype.Component;
@@ -10,22 +9,22 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
-public class HotelEntitiy {
+public class HotelEntity {
 
 	private long id;
 	private String name;
 	private String city;
 	private long checkin;
 	private long checkout;
-	private DealType dealType;
 	private double price;
 	private double fullPrice;
+	private int occupancy;  // for how many persons room fits
+	private DealType dealType;
 	private Currency currency;
 	private RoomType roomType;
-	private int occupancy;  // for how many persons room fits
+	private SOURCE source;
 	private boolean refundable;
 	private boolean plan;  // Breakfast
-	private SOURCE source;
 	private boolean exclusive;
 	private float rating;
 	
@@ -157,10 +156,22 @@ public class HotelEntitiy {
 		this.rating = rating;
 	}
 	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "HotelEntity [id=" + id + ", name=" + name + ", city=" + city + ", checkin=" + checkin + ", checkout="
+				+ checkout + ", price=" + price + ", fullPrice=" + fullPrice + ", occupancy=" + occupancy
+				+ ", dealType=" + dealType + ", currency=" + currency + ", roomType=" + roomType + ", source=" + source
+				+ ", refundable=" + refundable + ", plan=" + plan + ", exclusive=" + exclusive + ", rating=" + rating
+				+ "]";
+	}
+
 	public static void main(String[] args) {
 		
 		ObjectMapper mapper = new ObjectMapper();
-		HotelEntitiy hotelEntitiy = new HotelEntitiy();
+		HotelEntity hotelEntitiy = new HotelEntity();
 		
 		try {
 			// Convert object to JSON string and save into a file directly
