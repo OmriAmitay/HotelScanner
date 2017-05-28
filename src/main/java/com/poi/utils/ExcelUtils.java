@@ -10,9 +10,11 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -57,26 +59,37 @@ public class ExcelUtils {
 
 	public static final String REPORT_NORMALIZE_DATE_FORMAT = "dd-MM-yyyy";
 
-	public static final String INPUT_DATA = "c:\\sources\\temp\\inputData.xlsx";
-	public static final String INPUT_DATA_TEST = "c:\\sources\\temp\\1.xlsx";
+	public static final String INPUT_DATA = "c:\\sources\\temp\\issta.xlsx";
+	public static final String INPUT_DATA_TEST = "c:\\sources\\temp\\issta.xlsx";
 
 	public static void main(String[] args) {
 
 		try {
 
+			// TODO: different parsers fullList, compertitors, date for each provider: issta, daka90, eshet...
+			// weekend days should be in different color and moreover change all the report colors
+			
 			XSSFWorkbook workbook = getWorkbook();
+			
+			Map<String, CellStyle> styles = createStyles(workbook);
 
 			XSSFSheet sheet = createSheet(workbook, "Daily Report " + getCurrentDate());
 
-			createHeadline(workbook, sheet);
+			createHeadline(workbook, sheet, styles);
 
-			createDatesHeadline(workbook, sheet);
+			createDatesHeadline(workbook, sheet, styles);
+			
+			createProviderHeadline(workbook, sheet, styles);
 
-			createHotelLabels(workbook, sheet);
+			createHotelLabels(workbook, sheet, styles);
+			
+			createLogoPosition(workbook, sheet);
 
 			List<HotelEntity> entites = readCSVInput(INPUT_DATA);
 
-			insertPricesByDates(workbook, sheet, entites);
+			//insertPricesByDates(workbook, sheet, entites);
+			
+			removeComments(workbook, sheet);
 
 			closeFile(workbook, output);
 			Desktop.getDesktop().open(output);
@@ -87,10 +100,49 @@ public class ExcelUtils {
 
 	}
 
+	private static void removeComments(XSSFWorkbook workbook, XSSFSheet sheet) {
+		XSSFRow row = sheet.getRow((short) 1);
+		for (int i = 2; i < 33; i++) {
+			XSSFCell cell = row.getCell(i);
+			cell.removeCellComment();
+		}
+		
+		/*for (int i = 2; i < 8; i++) {
+			row = sheet.getRow((short) i);
+			XSSFCell cell = row.getCell(1);
+			cell.removeCellComment();
+		}*/
+	}
+
+	private static void createProviderHeadline(XSSFWorkbook workbook, XSSFSheet sheet, Map<String, CellStyle> styles) {
+		sheet.addMergedRegion(new CellRangeAddress(2, 7, 0, 0));
+		
+		XSSFRow yourRow = sheet.createRow((short) 2);
+		
+		XSSFFont providerFont = workbook.createFont();
+		providerFont.setFontHeightInPoints((short) 14);
+		providerFont.setFontName("Ariel");
+		providerFont.setColor(HSSFColor.ROYAL_BLUE.index);
+		providerFont.setItalic(true);
+		providerFont.setBold(true);
+		
+		XSSFCellStyle providerStyle = workbook.createCellStyle();
+		providerStyle.setRotation((short)90);
+		XSSFCell providerCell = yourRow.createCell(0);
+		providerCell.setCellValue("eshet tours");
+		
+		providerCell.setCellStyle(providerStyle);
+		providerStyle.setAlignment(CellStyle.ALIGN_CENTER);
+		providerStyle.setFillForegroundColor(IndexedColors.RED.getIndex());
+		providerStyle.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		providerStyle.setFont(providerFont);
+		
+	}
+
 	private static void insertPricesByDates(XSSFWorkbook workbook, XSSFSheet sheet, List<HotelEntity> entites)
 			throws ParseException {
 
-		for (int i = 1; i < 31; i++) {
+		for (int i = 2; i < 31; i++) {
 
 			XSSFRow row = sheet.getRow(DATES_ROW_INDEX);
 			XSSFCell cell = row.getCell(i);
@@ -107,7 +159,7 @@ public class ExcelUtils {
 				for (int k = 2; k < 8; k++) {
 
 					XSSFRow competitrosRow = sheet.getRow(k);
-					XSSFCell competitrosCell = competitrosRow.getCell(0);
+					XSSFCell competitrosCell = competitrosRow.getCell(1);
 					String competitorName = competitrosCell.getStringCellValue();
 
 					Optional<HotelEntity> hotelEntity = filteredByExactDate.stream()
@@ -150,11 +202,11 @@ public class ExcelUtils {
 		return workbook.createSheet(sheetName);
 	}
 
-	public static void createHeadline(XSSFWorkbook workbook, XSSFSheet sheet) {
-		sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 30));
+	public static void createHeadline(XSSFWorkbook workbook, XSSFSheet sheet, Map<String, CellStyle> styles) {
+		sheet.addMergedRegion(new CellRangeAddress(0, 0, 2, 33));
 
 		XSSFRow row = sheet.createRow((short) 0);
-		XSSFCell cell = row.createCell(0);
+		XSSFCell cell = row.createCell(2);
 		cell.setCellValue("Daily Report");
 
 		XSSFFont font = workbook.createFont();
@@ -168,7 +220,7 @@ public class ExcelUtils {
 		style.setFillForegroundColor(HSSFColor.ROYAL_BLUE.index);
 		style.setFillPattern(HSSFCellStyle.SOLID_FOREGROUND);
 
-		cell.setCellStyle(style);
+		cell.setCellStyle(styles.get("title"));
 	}
 
 	public static String getCurrentDate() {
@@ -190,8 +242,20 @@ public class ExcelUtils {
 
 		return date;
 	}
+	
+	private static void createLogoPosition(XSSFWorkbook workbook, XSSFSheet sheet) {
+		sheet.addMergedRegion(new CellRangeAddress(0, 1, 0, 1));
+		sheet.setColumnWidth(0, 1000);
+		sheet.setColumnWidth(1, 5000);
+		XSSFRow row = sheet.getRow(0);
+		XSSFCell cell = row.createCell(0);
+		cell.setCellValue("Put Logo Here");
+	}
 
-	private static void createHotelLabels(XSSFWorkbook workbook, XSSFSheet sheet) {
+	private static void createHotelLabels(XSSFWorkbook workbook, XSSFSheet sheet, Map<String, CellStyle> styles) {
+
+		XSSFRow yourRow = sheet.getRow(2);
+		
 		XSSFFont font = workbook.createFont();
 		font.setFontHeightInPoints((short) 10);
 		font.setFontName("Ariel");
@@ -199,10 +263,8 @@ public class ExcelUtils {
 		font.setItalic(true);
 		font.setBold(true);
 
-		sheet.setColumnWidth(0, 5000);
 		CellStyle style = workbook.createCellStyle();
-		XSSFRow yourRow = sheet.createRow((short) 2);
-		XSSFCell yourCell = yourRow.createCell(0);
+		XSSFCell yourCell = yourRow.createCell(1);
 		style.setAlignment(CellStyle.ALIGN_CENTER);
 		style.setFont(font);
 		yourCell.setCellStyle(style);
@@ -211,7 +273,7 @@ public class ExcelUtils {
 		for (int i = 0; i < 5; i++) {
 
 			XSSFRow row = sheet.createRow((short) i + 3);
-			XSSFCell compertitorCell = row.createCell(0);
+			XSSFCell compertitorCell = row.createCell(1);
 
 			CellStyle competitorStyle = workbook.createCellStyle();
 			competitorStyle.setAlignment(CellStyle.ALIGN_CENTER);
@@ -229,7 +291,7 @@ public class ExcelUtils {
 		}
 	}
 
-	private static void createDatesHeadline(XSSFWorkbook workbook, XSSFSheet sheet) {
+	private static void createDatesHeadline(XSSFWorkbook workbook, XSSFSheet sheet, Map<String, CellStyle> styles) {
 		XSSFRow row = sheet.createRow((short) 1);
 		row.setHeightInPoints((2 * sheet.getDefaultRowHeightInPoints()));
 		Calendar calendar = Calendar.getInstance();
@@ -250,27 +312,33 @@ public class ExcelUtils {
 		CellStyle firstStyle = workbook.createCellStyle();
 		firstStyle.setAlignment(CellStyle.ALIGN_CENTER);
 
-		XSSFCell firstCell = row.createCell(0);
+		XSSFCell firstCell = row.createCell(1);
 		firstCell.setCellStyle(firstStyle);
 		firstCell.setCellValue("\n\n\n");
 
-		for (int i = 1; i < 31; i++) {
+		for (int i = 2; i < 33; i++) {
 
 			calendar.add(Calendar.DATE, 1);
 			int dayOfMonth = calendar.get(Calendar.DAY_OF_MONTH);
+			int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
 			Date date = calendar.getTime();
 			SimpleDateFormat simpleDateFormat = new SimpleDateFormat("EEE");
 			String dayStr = simpleDateFormat.format(date).toUpperCase();
 			dayStr = camelCase(dayStr);
 			XSSFCell cell = row.createCell(i);
-			cell.setCellStyle(center);
-			cell.setCellValue(dayStr + "\n" + dayOfMonth);
+			
+			if(dayOfWeek == 6 || dayOfWeek == 7) {
+				cell.setCellStyle(styles.get("weekend"));
+			} else {
+				cell.setCellStyle(styles.get("workday"));
+			}
+			
+			cell.setCellValue(dayStr + " " + dayOfMonth);
 
 			simpleDateFormat = new SimpleDateFormat("dd-MM-yyyy");
 			dayStr = simpleDateFormat.format(date).toUpperCase();
 
-			addCommentToCell(workbook, sheet, cell, dayStr); // add full date
-																// for search
+			addCommentToCell(workbook, sheet, cell, dayStr); // add full date for search
 		}
 	}
 
@@ -379,5 +447,130 @@ public class ExcelUtils {
 		return entites;
 
 	}
+	
+	/**
+     * cell styles used for formatting calendar sheets
+     */
+    private static Map<String, CellStyle> createStyles(XSSFWorkbook workbook){
+        Map<String, CellStyle> styles = new HashMap<String, CellStyle>();
+
+        short borderColor = IndexedColors.GREY_50_PERCENT.getIndex();
+
+        CellStyle style;
+        Font titleFont = workbook.createFont();
+        titleFont.setFontHeightInPoints((short)48);
+        titleFont.setColor(IndexedColors.DARK_BLUE.getIndex());
+        style = workbook.createCellStyle();
+        style.setAlignment(CellStyle.ALIGN_CENTER);
+        style.setVerticalAlignment(CellStyle.ALIGN_CENTER);
+        style.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
+        style.setFont(titleFont);
+        styles.put("title", style);
+
+        XSSFFont monthFont = workbook.createFont();
+        monthFont.setFontHeightInPoints((short)12);
+        monthFont.setColor(IndexedColors.WHITE.getIndex());
+        monthFont.setBold(true);
+        style = workbook.createCellStyle();
+        style.setAlignment(CellStyle.ALIGN_CENTER);
+        style.setVerticalAlignment(CellStyle.ALIGN_CENTER);
+        style.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
+        style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+        style.setFont(monthFont);
+        styles.put("month", style);
+
+        XSSFFont dayFont = workbook.createFont();
+        dayFont.setFontHeightInPoints((short)12);
+        dayFont.setBold(true);
+        style = workbook.createCellStyle();
+        style.setAlignment(CellStyle.ALIGN_CENTER);
+        style.setVerticalAlignment(CellStyle.ALIGN_CENTER);
+        //style.setFillForegroundColor(new XSSFColor(new Color(195,130,216)).getIndexed());
+        style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+        style.setBorderRight(CellStyle.BORDER_THIN);
+        style.setRightBorderColor(borderColor);
+        style.setBorderBottom(CellStyle.BORDER_THIN);
+        style.setBottomBorderColor(borderColor);
+        style.setBorderLeft(CellStyle.BORDER_THIN);
+        style.setLeftBorderColor(borderColor);
+        style.setBorderTop(CellStyle.BORDER_THIN);
+        style.setTopBorderColor(borderColor);
+        style.setFont(dayFont);
+        styles.put("workday", style);
+        
+        dayFont = workbook.createFont();
+        dayFont.setFontHeightInPoints((short)12);
+        dayFont.setBold(true);
+        style = workbook.createCellStyle();
+        style.setAlignment(CellStyle.ALIGN_CENTER);
+        style.setVerticalAlignment(CellStyle.ALIGN_CENTER);
+        //style.setFillForegroundColor(new XSSFColor(new Color(225,135,255)).getIndexed());
+        style.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
+        style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+        style.setBorderRight(CellStyle.BORDER_THIN);
+        style.setRightBorderColor(borderColor);
+        style.setBorderBottom(CellStyle.BORDER_THIN);
+        style.setBottomBorderColor(borderColor);
+        style.setBorderLeft(CellStyle.BORDER_THIN);
+        style.setLeftBorderColor(borderColor);
+        style.setBorderTop(CellStyle.BORDER_THIN);
+        style.setTopBorderColor(borderColor);
+        style.setFont(dayFont);
+        styles.put("weekend", style);
+
+        style = workbook.createCellStyle();
+        style.setAlignment(CellStyle.ALIGN_CENTER);
+        style.setVerticalAlignment(CellStyle.VERTICAL_TOP);
+        style.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
+        style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+        style.setBorderRight(CellStyle.BORDER_THIN);
+        style.setRightBorderColor(borderColor);
+        style.setBorderBottom(CellStyle.BORDER_THIN);
+        style.setBottomBorderColor(borderColor);
+        styles.put("weekend_right", style);
+
+        style = workbook.createCellStyle();
+        style.setAlignment(CellStyle.ALIGN_LEFT);
+        style.setVerticalAlignment(CellStyle.VERTICAL_TOP);
+        style.setBorderLeft(CellStyle.BORDER_THIN);
+        style.setFillForegroundColor(IndexedColors.WHITE.getIndex());
+        style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+        style.setLeftBorderColor(borderColor);
+        style.setBorderBottom(CellStyle.BORDER_THIN);
+        style.setBottomBorderColor(borderColor);
+        style.setFont(dayFont);
+        styles.put("workday_left", style);
+
+        style = workbook.createCellStyle();
+        style.setAlignment(CellStyle.ALIGN_CENTER);
+        style.setVerticalAlignment(CellStyle.VERTICAL_TOP);
+        style.setFillForegroundColor(IndexedColors.WHITE.getIndex());
+        style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+        style.setBorderRight(CellStyle.BORDER_THIN);
+        style.setRightBorderColor(borderColor);
+        style.setBorderBottom(CellStyle.BORDER_THIN);
+        style.setBottomBorderColor(borderColor);
+        styles.put("workday_right", style);
+
+        style = workbook.createCellStyle();
+        style.setBorderLeft(CellStyle.BORDER_THIN);
+        style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+        style.setBorderBottom(CellStyle.BORDER_THIN);
+        style.setBottomBorderColor(borderColor);
+        styles.put("grey_left", style);
+
+        style = workbook.createCellStyle();
+        style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+        style.setBorderRight(CellStyle.BORDER_THIN);
+        style.setRightBorderColor(borderColor);
+        style.setBorderBottom(CellStyle.BORDER_THIN);
+        style.setBottomBorderColor(borderColor);
+        styles.put("grey_right", style);
+
+        return styles;
+    }
 
 }
