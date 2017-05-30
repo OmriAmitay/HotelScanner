@@ -79,6 +79,8 @@ public class ExcelUtils {
 
 			createDatesHeadline(workbook, sheet, styles);
 			
+			// Each Provider Iteration
+			
 			createProviderHeadline(workbook, sheet, styles);
 
 			createHotelLabels(workbook, sheet, styles);
@@ -107,11 +109,11 @@ public class ExcelUtils {
 			cell.removeCellComment();
 		}
 		
-		/*for (int i = 2; i < 8; i++) {
+		for (int i = 2; i < 8; i++) {
 			row = sheet.getRow((short) i);
 			XSSFCell cell = row.getCell(1);
 			cell.removeCellComment();
-		}*/
+		}
 	}
 
 	private static void createProviderHeadline(XSSFWorkbook workbook, XSSFSheet sheet, Map<String, CellStyle> styles) {
