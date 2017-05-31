@@ -1,4 +1,4 @@
-package parser;
+package members;
 
 public enum RoomType {
 	REGULAR, SUITE
