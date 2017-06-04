@@ -68,7 +68,7 @@ public class ExcelUtils {
 	public static String[] compertitors = { "שלמה המלך נתניה", "רזידנס נתניה", "איילנד נתניה", "השרון הרצליה", "דניאל הרצליה", "מלון קיו חוף פולג" };
 	public static String[] issta_compertitors = { "המלך שלמה", "לאונרדו פלאזה נתניה", "איילנד", "רזידנס ביץ'", "רזידנס נתניה", "העונות" };
 
-	public static final String SUBJECT_HOTEL = "רמדה נתניה";
+	public static final String ESHET_SUBJECT_HOTEL = "רמדה נתניה";
 	public static final String ISSTA_SUBJECT_HOTEL = "רמדה";
 
 	public static final String ESHET_INPUT_DATA = "c:\\sources\\HotelScanner\\reports\\eshettours\\inputData.xlsx";
@@ -120,7 +120,7 @@ public class ExcelUtils {
 				
 					case ESHET:
 						
-						parser = new GenericParser(0, 1, 3, 4, "רמדה נתניה", ESHET_INPUT_DATA, true, "ESHET TOURS");
+						parser = new GenericParser(0, 1, 3, 4, ESHET_SUBJECT_HOTEL, ESHET_INPUT_DATA, true, "ESHET TOURS");
 						entites = readCSVInput(parser);
 						competitorsNames = getCompetitorsNames(entites, parser.getSubjectHotel());
 						
@@ -135,7 +135,7 @@ public class ExcelUtils {
 						
 					case ISSTA:
 						
-						parser = new GenericParser(0, 1, 4, 5, "רמדה", ISSTA_INPUT_DATA, true, "ISSTA");
+						parser = new GenericParser(0, 1, 4, 5, ISSTA_SUBJECT_HOTEL, ISSTA_INPUT_DATA, true, "ISSTA");
 						entites = readCSVInput(parser);
 						competitorsNames = getCompetitorsNames(entites, parser.getSubjectHotel());
 						
