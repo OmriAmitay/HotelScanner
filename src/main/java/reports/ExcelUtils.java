@@ -8,16 +8,19 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -48,6 +51,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import members.Currency;
 import members.HotelEntity;
+import members.Source;
+import parsers.GenericParser;
 
 public class ExcelUtils {
 
@@ -60,22 +65,26 @@ public class ExcelUtils {
 	public static final String REPORT_NORMALIZE_DATE_FORMAT = "dd-MM-yyyy";
 	public static final String SHEET_NAME_PREFIX = "Daily Report";
 
-	public static String[] compertitors = { "שלמה המלך נתניה", "רזידנס נתניה", "איילנד נתניה", "השרון הרצליה",
-			"דניאל הרצליה", "מלון קיו חוף פולג" };
-	// public static String[] fullList = { "שלמה המלך נתניה", "רזידנס נתניה",
-	// "איילנד נתניה", "השרון הרצליה", "דניאל הרצליה", "מלון קיו חוף פולג",
-	// "רמדה נתניה" };
-
-	public static String[] issta_compertitors = { "המלך שלמה", "לאונרדו פלאזה נתניה", "איילנד", "רזידנס ביץ'",
-			"רזידנס נתניה", "העונות" };
+	public static String[] compertitors = { "שלמה המלך נתניה", "רזידנס נתניה", "איילנד נתניה", "השרון הרצליה", "דניאל הרצליה", "מלון קיו חוף פולג" };
+	public static String[] issta_compertitors = { "המלך שלמה", "לאונרדו פלאזה נתניה", "איילנד", "רזידנס ביץ'", "רזידנס נתניה", "העונות" };
 
 	public static final String SUBJECT_HOTEL = "רמדה נתניה";
 	public static final String ISSTA_SUBJECT_HOTEL = "רמדה";
 
-	// public static final String INPUT_DATA =
-	// "c:\\sources\\temp\\eshettours\inputData.xlsx";
-	public static final String INPUT_DATA = "C:\\Users\\user\\Documents\\GitHub\\HotelScanner\\reports\\issta\\issta.xlsx";
+	public static final String ESHET_INPUT_DATA = "c:\\sources\\HotelScanner\\reports\\eshettours\\inputData.xlsx";
+	public static final String ISSTA_INPUT_DATA = "c:\\sources\\HotelScanner\\reports\\issta\\issta_data.xlsx";
 	public static final String LOGO_PATH = "C:\\Users\\user\\Documents\\GitHub\\HotelScanner\\reports\\mylogo.jpg";
+	
+	public static final int COLUMN_INDEX_CHECKIN_DATE = 0;
+	public static final int COLUMN_INDEX_PRICE = 1;
+	public static final int COLUMN_INDEX_HOTEL_NAME = 3;
+	public static final int COLUMN_INDEX_CURRENCY = 4;
+	
+	private static final int PROVIDER_BUFFER = 3;
+	
+	public static int headLineRowIndex = 0;
+	public static int datesRowIndex = 1;
+	public static int dataRowIndex = 2;
 
 	public static void main(String[] args) {
 
@@ -85,6 +94,7 @@ public class ExcelUtils {
 			// provider: issta, daka90, eshet...
 			// weekend days should be in different color and moreover change all
 			// the report colors
+			// add context for row and column index
 
 			XSSFWorkbook workbook = getWorkbook();
 			XSSFSheet sheet = createSheet(workbook, SHEET_NAME_PREFIX + " " + getCurrentDate());
@@ -95,18 +105,55 @@ public class ExcelUtils {
 			createLogoPosition(workbook, sheet);
 			// setLogo(workbook, sheet);
 
+			GenericParser parser = null;
+			List<HotelEntity> entites = null;
+			List<String> competitorsNames = null;
+			int length = 0;
+			
+			List<Source> sourcesList = new ArrayList<>();
+			sourcesList.add(Source.ESHET);
+			sourcesList.add(Source.ISSTA);
 			// Each Provider Iteration
-
-			createProviderHeadline(workbook, sheet, styles);
-
-			createHotelLabels(workbook, sheet, styles, ISSTA_SUBJECT_HOTEL, issta_compertitors);
-
-			List<HotelEntity> entites = readCSVInput(INPUT_DATA);
-
-			insertPricesByDates(workbook, sheet, entites, styles);
-
+			for(Source source: sourcesList) {
+			
+				switch (source) {
+				
+					case ESHET:
+						
+						parser = new GenericParser(0, 1, 3, 4, "רמדה נתניה", ESHET_INPUT_DATA, true, "ESHET TOURS");
+						entites = readCSVInput(parser);
+						competitorsNames = getCompetitorsNames(entites, parser.getSubjectHotel());
+						
+						length = competitorsNames.size();
+						createProviderHeadline(workbook, sheet, styles, parser, length);
+						createHotelLabels(workbook, sheet, styles, parser, competitorsNames);
+						insertPricesByDates(workbook, sheet, styles, entites, length);
+						
+						dataRowIndex = dataRowIndex + length + 1 + PROVIDER_BUFFER;
+						
+						break;
+						
+					case ISSTA:
+						
+						parser = new GenericParser(0, 1, 4, 5, "רמדה", ISSTA_INPUT_DATA, true, "ISSTA");
+						entites = readCSVInput(parser);
+						competitorsNames = getCompetitorsNames(entites, parser.getSubjectHotel());
+						
+						length = competitorsNames.size();
+						createProviderHeadline(workbook, sheet, styles, parser, length);
+						createHotelLabels(workbook, sheet, styles, parser, competitorsNames);
+						insertPricesByDates(workbook, sheet, styles, entites, length);
+						
+						dataRowIndex = dataRowIndex + length + 1 + PROVIDER_BUFFER;
+						
+						break;
+		
+					default:
+						break;
+					}			
+			}
+			
 			removeComments(workbook, sheet);
-
 			closeFile(workbook, output);
 			Desktop.getDesktop().open(output);
 
@@ -115,7 +162,14 @@ public class ExcelUtils {
 		}
 
 	}
-
+	
+	private static List<String> getCompetitorsNames(List<HotelEntity> entites, String subject) {
+		Set<String> competitors = new HashSet<String>(); 
+		entites.stream().forEach(e -> competitors.add(e.getName()));
+		List<String> list = new ArrayList<String>(competitors);
+		return list;
+	}
+	
 	private static void removeComments(XSSFWorkbook workbook, XSSFSheet sheet) {
 		XSSFRow row = sheet.getRow((short) 1);
 		for (int i = 2; i < 33; i++) {
@@ -131,16 +185,15 @@ public class ExcelUtils {
 
 	}
 
-	private static void createProviderHeadline(XSSFWorkbook workbook, XSSFSheet sheet, Map<String, CellStyle> styles) {
-		sheet.addMergedRegion(new CellRangeAddress(2, 7, 0, 0));
-		XSSFRow yourRow = sheet.createRow((short) 2);
+	private static void createProviderHeadline(XSSFWorkbook workbook, XSSFSheet sheet, Map<String, CellStyle> styles, GenericParser parser, int length) {
+		sheet.addMergedRegion(new CellRangeAddress(dataRowIndex, dataRowIndex+length, 0, 0));
+		XSSFRow yourRow = sheet.createRow(dataRowIndex);
 		XSSFCell providerCell = yourRow.createCell(0);
-		providerCell.setCellValue("ESHET TOURS");
+		providerCell.setCellValue(parser.getProviderName());
 		providerCell.setCellStyle(styles.get("provider_label"));
 	}
 
-	private static void insertPricesByDates(XSSFWorkbook workbook, XSSFSheet sheet, List<HotelEntity> entites,
-			Map<String, CellStyle> styles) throws ParseException {
+	private static void insertPricesByDates(XSSFWorkbook workbook, XSSFSheet sheet, Map<String, CellStyle> styles, List<HotelEntity> entites, int length) throws ParseException {
 
 		for (int i = 2; i < 31; i++) {
 
@@ -151,26 +204,26 @@ public class ExcelUtils {
 			DateFormat format = new SimpleDateFormat(REPORT_NORMALIZE_DATE_FORMAT);
 			Date date = format.parse(commentDate.getString());
 
-			List<HotelEntity> filteredByExactDate = entites.stream().filter(e -> e.getCheckin() == date.getTime())
+			List<HotelEntity> filteredByDate = entites.stream()
+					.filter(e -> e.getCheckin() == date.getTime())
 					.collect(Collectors.toList());
 
-			if (!filteredByExactDate.isEmpty()) {
+			if (! filteredByDate.isEmpty()) {
 
-				for (int k = 2; k < 8; k++) {
+				for (int k = dataRowIndex; k < dataRowIndex + length + 1; k++) {
 
 					XSSFRow competitrosRow = sheet.getRow(k);
 					XSSFCell competitrosCell = competitrosRow.getCell(1);
 					String competitorName = competitrosCell.getStringCellValue();
 
-					Optional<HotelEntity> hotelEntity = filteredByExactDate.stream()
-							.filter(e -> e.getName().equals(competitorName)).findFirst();
+					Optional<HotelEntity> hotelEntityByDate = filteredByDate.stream()
+							.filter(e -> e.getName().equals(competitorName))
+							.findFirst();
 
-					row = sheet.getRow(k);
-					cell = row.createCell(i);
-					cell.setCellValue(hotelEntity.isPresent() ? Double.toString(hotelEntity.get().getPrice()) : "N/A");
+					cell = competitrosRow.createCell(i);
+					cell.setCellValue(hotelEntityByDate.isPresent() ? Double.toString(hotelEntityByDate.get().getPrice()) : "N/A");
 
-					if (!hotelEntity.isPresent()) {
-
+					if (!hotelEntityByDate.isPresent()) {
 						cell.setCellStyle(styles.get("not_available"));
 					} else {
 						cell.setCellStyle(styles.get("available"));
@@ -182,12 +235,12 @@ public class ExcelUtils {
 
 	}
 
-	public static XSSFWorkbook getWorkbook() throws IOException {
+	private static XSSFWorkbook getWorkbook() throws IOException {
 		XSSFWorkbook workbook = new XSSFWorkbook();
 		return workbook;
 	}
 
-	public static void closeFile(XSSFWorkbook workbook, File output) throws IOException {
+	private static void closeFile(XSSFWorkbook workbook, File output) throws IOException {
 		// Create file system using specific name
 		FileOutputStream out = new FileOutputStream(output);
 		// write operation workbook using file out object
@@ -196,18 +249,18 @@ public class ExcelUtils {
 		System.out.println("createworkbook.xlsx written successfully");
 	}
 
-	public static XSSFSheet createSheet(XSSFWorkbook workbook, String sheetName) {
+	private static XSSFSheet createSheet(XSSFWorkbook workbook, String sheetName) {
 		return workbook.createSheet(sheetName);
 	}
 
-	public static void createHeadline(XSSFWorkbook workbook, XSSFSheet sheet, Map<String, CellStyle> styles) {
+	private static void createHeadline(XSSFWorkbook workbook, XSSFSheet sheet, Map<String, CellStyle> styles) {
 		sheet.addMergedRegion(new CellRangeAddress(0, 0, 2, 33));
 
-		XSSFRow row = sheet.createRow((short) 0);
+		XSSFRow row = sheet.createRow((short) headLineRowIndex);
 		XSSFCell cell = row.createCell(2);
 		cell.setCellValue("Daily Report");
 
-		XSSFFont font = workbook.createFont();
+		/*XSSFFont font = workbook.createFont();
 		font.setFontHeightInPoints((short) 30);
 		font.setFontName("IMPACT");
 		font.setItalic(true);
@@ -216,12 +269,12 @@ public class ExcelUtils {
 		XSSFCellStyle style = workbook.createCellStyle();
 		style.setFont(font);
 		style.setFillForegroundColor(HSSFColor.ROYAL_BLUE.index);
-		style.setFillPattern(HSSFCellStyle.SOLID_FOREGROUND);
+		style.setFillPattern(HSSFCellStyle.SOLID_FOREGROUND);*/
 
 		cell.setCellStyle(styles.get("title"));
 	}
 
-	public static String getCurrentDate() {
+	private static String getCurrentDate() {
 		SimpleDateFormat sdfDate = new SimpleDateFormat("dd-MM-yy");
 		Date now = new Date();
 		String date = sdfDate.format(now);
@@ -244,74 +297,44 @@ public class ExcelUtils {
 	private static void createLogoPosition(XSSFWorkbook workbook, XSSFSheet sheet) {
 		sheet.addMergedRegion(new CellRangeAddress(0, 1, 0, 1));
 		sheet.setColumnWidth(0, 1000);
-		sheet.setColumnWidth(1, 5000);
+		sheet.setColumnWidth(1, 6000);
 		XSSFRow row = sheet.getRow(0);
 		XSSFCell cell = row.createCell(0);
 		cell.setCellValue("Put Logo Here");
 	}
 
 	private static void createHotelLabels(XSSFWorkbook workbook, XSSFSheet sheet, Map<String, CellStyle> styles,
-			String subject, String[] compertitors) {
+										  GenericParser parser, List<String> compertitors) {
 
-		XSSFRow yourRow = sheet.getRow(2);
-
-		XSSFFont font = workbook.createFont();
-		font.setFontHeightInPoints((short) 10);
-		font.setFontName("Ariel");
-		font.setColor(HSSFColor.ROYAL_BLUE.index);
-		font.setItalic(true);
-		font.setBold(true);
-
-		CellStyle style = workbook.createCellStyle();
+		XSSFRow yourRow = sheet.getRow(dataRowIndex);
 		XSSFCell yourCell = yourRow.createCell(1);
-		style.setAlignment(CellStyle.ALIGN_CENTER);
-		style.setFont(font);
-		yourCell.setCellStyle(style);
-		yourCell.setCellValue(subject);
+		yourCell.setCellStyle(styles.get("hotel_name"));
+		yourCell.setCellValue(parser.getSubjectHotel());
 
-		for (int i = 0; i < 5; i++) {
+		for (int i = 0; i < compertitors.size(); i++) {
 
-			XSSFRow row = sheet.createRow((short) i + 3);
+			XSSFRow row = sheet.createRow(i + dataRowIndex + 1);
 			XSSFCell compertitorCell = row.createCell(1);
 
-			CellStyle competitorStyle = workbook.createCellStyle();
-			competitorStyle.setAlignment(CellStyle.ALIGN_CENTER);
-			competitorStyle.setFont(font);
-
+			compertitorCell.setCellStyle(styles.get("hotel_name"));
 			if (i % 2 == 0) {
-				competitorStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
-				competitorStyle.setFillPattern(CellStyle.SOLID_FOREGROUND);
+				compertitorCell.setCellStyle(styles.get("hotel_name_second"));
 			}
-
-			compertitorCell.setCellStyle(competitorStyle);
-			compertitorCell.setCellValue(compertitors[i]);
-
-			addCommentToCell(workbook, sheet, compertitorCell, Integer.valueOf(i).toString());
+			
+			compertitorCell.setCellValue(compertitors.get(i));
+			//addCommentToCell(workbook, sheet, compertitorCell, Integer.valueOf(i).toString());
 		}
 	}
 
 	private static void createDatesHeadline(XSSFWorkbook workbook, XSSFSheet sheet, Map<String, CellStyle> styles) {
-		XSSFRow row = sheet.createRow((short) 1);
+		XSSFRow row = sheet.createRow(datesRowIndex);
 		row.setHeightInPoints((2 * sheet.getDefaultRowHeightInPoints()));
 		// Calendar calendar = Calendar.getInstance();
 		// calendar.setTime(new Date());
-		Calendar calendar = new GregorianCalendar(2017, 5, 20, 12, 00, 00);
-
-		CellStyle center = workbook.createCellStyle();
-		center.setAlignment(CellStyle.ALIGN_CENTER);
-		center.setFillForegroundColor(IndexedColors.LIGHT_ORANGE.getIndex());
-		center.setFillPattern(CellStyle.SOLID_FOREGROUND);
-		center.setWrapText(true);
-
-		Font font = workbook.createFont();
-		font.setFontHeightInPoints((short) 10);
-		font.setFontName("Ariel");
-		font.setItalic(true);
-		center.setFont(font);
+		Calendar calendar = new GregorianCalendar(2017, 5, 12, 12, 00, 00);
 
 		CellStyle firstStyle = workbook.createCellStyle();
 		firstStyle.setAlignment(CellStyle.ALIGN_CENTER);
-
 		XSSFCell firstCell = row.createCell(1);
 		firstCell.setCellStyle(firstStyle);
 		firstCell.setCellValue("\n\n\n");
@@ -319,7 +342,6 @@ public class ExcelUtils {
 		for (int i = 2; i < 33; i++) {
 
 			calendar.add(Calendar.DATE, 1);
-			int dayOfMonth = calendar.get(Calendar.DAY_OF_MONTH);
 			int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
 			Date date = calendar.getTime();
 			SimpleDateFormat simpleDateFormat = new SimpleDateFormat("EEE");
@@ -357,77 +379,48 @@ public class ExcelUtils {
 		cell.setCellComment(comment);
 	}
 
-	public static String camelCase(String text) {
+	private static String camelCase(String text) {
 		return StringUtils.remove(WordUtils.capitalizeFully(text, '_'), "_");
 	}
 
-	public static List<HotelEntity> readCSVInput(String input) {
+	private static List<HotelEntity> readCSVInput(GenericParser parser) {
 
 		List<HotelEntity> entites = new LinkedList<>();
 		try {
-
-			File myFile = new File(input);
+			File myFile = new File(parser.getInput());
 			FileInputStream fis = new FileInputStream(myFile);
 			XSSFWorkbook myWorkBook = new XSSFWorkbook(fis);
 			XSSFSheet mySheet = myWorkBook.getSheetAt(0);
-
-			// ignore headlines
+			
 			Iterator<Row> rowIterator = mySheet.iterator();
-			Row row = rowIterator.next();
+			if(parser.isSkipHeadline()) {
+				rowIterator.next();
+			}
 
 			while (rowIterator.hasNext()) {
-
 				HotelEntity hotelEntity = new HotelEntity();
-				row = rowIterator.next();
+				Row row = rowIterator.next();
 
 				Iterator<Cell> cellIterator = row.cellIterator();
 				while (cellIterator.hasNext()) {
-
 					Cell cell = cellIterator.next();
 
 					int columnIndex = cell.getColumnIndex();
-					int cellType = cell.getCellType();
-
-					if (columnIndex == 0) {
-
-						DateFormat format = new SimpleDateFormat(REPORT_NORMALIZE_DATE_FORMAT);
-
-						Date date = null;
-						String dateStr = null;
-						if (cellType == 1) {
-							dateStr = cell.getStringCellValue();
-
-							try {
-								date = format.parse(dateStr);
-							} catch (Exception ex) {
-								String[] split = dateStr.split("/");
-								if (split[0].length() > 2) {
-									split[0] = split[0].substring(1, split[0].length());
-								} else if (Integer.valueOf(split[0]) < 10) {
-									split[0] = "0" + split[0];
-								}
-
-								dateStr = split[0] + "-" + split[1] + "-" + split[2];
-								date = format.parse(dateStr);
-							}
-
-						} else if (cellType == 0) {
-							date = cell.getDateCellValue();
-						}
-
+					if (columnIndex == parser.getChekcinDateIndex()) {
+						Date date = parser.parseDateField(cell, REPORT_NORMALIZE_DATE_FORMAT);
 						hotelEntity.setCheckin(date != null ? date.getTime() : null);
 					}
 
-					if (columnIndex == 1) {
-						hotelEntity.setName(cell.getStringCellValue());
+					if (columnIndex == parser.getHotelNameIndex()) {
+						hotelEntity.setName(parser.parseStringField(cell));
 					}
 
-					if (columnIndex == 3) {
-						hotelEntity.setPrice(cell.getNumericCellValue());
+					if (columnIndex == parser.getPriceIndex()) {
+						hotelEntity.setPrice(parser.parseNumericField(cell));
 					}
 
-					if (columnIndex == 4) {
-						hotelEntity.setCurrency(cell.getStringCellValue().equals("₪") ? Currency.NIS : Currency.DOLLAR);
+					if (columnIndex == parser.getCurrencyIndex()) {
+						hotelEntity.setCurrency(parser.parseStringField(cell).equals("₪") ? Currency.NIS : Currency.DOLLAR);
 					}
 
 				}
@@ -595,7 +588,7 @@ public class ExcelUtils {
 		styles.put("grey_right", style);
 
 		XSSFFont providerFont = workbook.createFont();
-		providerFont.setFontHeightInPoints((short) 10);
+		providerFont.setFontHeightInPoints((short) 14);
 		providerFont.setFontName("Ariel");
 		providerFont.setColor(HSSFColor.ROYAL_BLUE.index);
 		providerFont.setItalic(true);
@@ -636,6 +629,24 @@ public class ExcelUtils {
 		style.setTopBorderColor(borderColor);
 		style.setWrapText(true);
 		styles.put("not_available", style);
+		
+		XSSFFont font = workbook.createFont();
+		font.setFontHeightInPoints((short) 10);
+		font.setFontName("Ariel");
+		font.setColor(HSSFColor.ROYAL_BLUE.index);
+		font.setItalic(true);
+		font.setBold(true);
+		style = workbook.createCellStyle();
+		style.setAlignment(CellStyle.ALIGN_CENTER);
+		style.setFont(font);
+		styles.put("hotel_name", style);
+		
+		style = workbook.createCellStyle();
+		style.setAlignment(CellStyle.ALIGN_CENTER);
+		style.setFont(font);
+		style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		styles.put("hotel_name_second", style);
 
 		return styles;
 	}

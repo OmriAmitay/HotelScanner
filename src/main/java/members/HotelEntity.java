@@ -22,7 +22,7 @@ public class HotelEntity {
 	private DealType dealType;
 	private Currency currency;
 	private RoomType roomType;
-	private SOURCE source;
+	private Source source;
 	private boolean refundable;
 	private boolean plan;  // Breakfast
 	private boolean exclusive;
@@ -132,11 +132,11 @@ public class HotelEntity {
 		this.plan = plan;
 	}
 	
-	public SOURCE getSource() {
+	public Source getSource() {
 		return source;
 	}
 	
-	public void setSource(SOURCE source) {
+	public void setSource(Source source) {
 		this.source = source;
 	}
 	

@@ -31,7 +31,7 @@ public class MockUtils {
 		entity.setOccupancy(2);
 		entity.setRefundable(false);
 		entity.setPlan(true);
-		entity.setSource(SOURCE.ISSTA);
+		entity.setSource(Source.ISSTA);
 		entity.setExclusive(false);
 		entity.setRating(getRating(rnd));
 		
